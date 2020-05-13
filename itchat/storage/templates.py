@@ -230,21 +230,26 @@ class Chatroom(AbstractUserDict):
                 if name: # select based on name
                     contact = []
                     for m in self.memberList:
-                        if any([m.get(k) == name for k in ('RemarkName', 'NickName', 'Alias')]):
+                        if any(
+                            m.get(k) == name
+                            for k in ('RemarkName', 'NickName', 'Alias')
+                        ):
                             contact.append(m)
                 else:
                     contact = self.memberList[:]
                 if matchDict: # select again based on matchDict
-                    friendList = []
-                    for m in contact:
-                        if all([m.get(k) == v for k, v in matchDict.items()]):
-                            friendList.append(m)
+                    friendList = [
+                        m
+                        for m in contact
+                        if all(m.get(k) == v for k, v in matchDict.items())
+                    ]
+
                     return copy.deepcopy(friendList)
                 else:
                     return copy.deepcopy(contact)
     def __setstate__(self, state):
         super(Chatroom, self).__setstate__(state)
-        if not 'MemberList' in self:
+        if 'MemberList' not in self:
             self['MemberList'] = fakeContactList
 
 class ChatroomMember(AbstractUserDict):

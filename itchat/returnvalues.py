@@ -31,7 +31,7 @@ class ReturnValue(dict):
                     'Data': rawResponse.content, }
         for k, v in returnValueDict.items():
             self[k] = v
-        if not 'BaseResponse' in self:
+        if 'BaseResponse' not in self:
             self['BaseResponse'] = {
                 'ErrMsg': 'no BaseResponse in raw response',
                 'Ret': -1000, }
