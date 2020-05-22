@@ -155,13 +155,13 @@ def process_login_info(core, loginContent):
     r = core.s.get(core.loginInfo['url'], headers=headers, allow_redirects=False)
     core.loginInfo['url'] = core.loginInfo['url'][:core.loginInfo['url'].rfind('/')]
     for indexUrl, detailedUrl in (
-            ("wx2.qq.com"      , ("file.wx2.qq.com", "webpush.wx2.qq.com")),
-            ("wx8.qq.com"      , ("file.wx8.qq.com", "webpush.wx8.qq.com")),
-            ("qq.com"          , ("file.wx.qq.com", "webpush.wx.qq.com")),
-            ("web2.wechat.com" , ("file.web2.wechat.com", "webpush.web2.wechat.com")),
-            ("wechat.com"      , ("file.web.wechat.com", "webpush.web.wechat.com"))):
-        fileUrl, syncUrl = ['https://%s/cgi-bin/mmwebwx-bin' % url for url in detailedUrl]
+                ("wx2.qq.com"      , ("file.wx2.qq.com", "webpush.wx2.qq.com")),
+                ("wx8.qq.com"      , ("file.wx8.qq.com", "webpush.wx8.qq.com")),
+                ("qq.com"          , ("file.wx.qq.com", "webpush.wx.qq.com")),
+                ("web2.wechat.com" , ("file.web2.wechat.com", "webpush.web2.wechat.com")),
+                ("wechat.com"      , ("file.web.wechat.com", "webpush.web.wechat.com"))):
         if indexUrl in core.loginInfo['url']:
+            fileUrl, syncUrl = ['https://%s/cgi-bin/mmwebwx-bin' % url for url in detailedUrl]
             core.loginInfo['fileUrl'], core.loginInfo['syncUrl'] = \
                 fileUrl, syncUrl
             break
@@ -171,15 +171,18 @@ def process_login_info(core, loginContent):
     core.loginInfo['logintime'] = int(time.time() * 1e3)
     core.loginInfo['BaseRequest'] = {}
     for node in xml.dom.minidom.parseString(r.text).documentElement.childNodes:
-        if node.nodeName == 'skey':
+        if node.nodeName == 'pass_ticket':
+            core.loginInfo['pass_ticket'] = core.loginInfo['BaseRequest']['DeviceID'] = node.childNodes[0].data
+        elif node.nodeName == 'skey':
             core.loginInfo['skey'] = core.loginInfo['BaseRequest']['Skey'] = node.childNodes[0].data
         elif node.nodeName == 'wxsid':
             core.loginInfo['wxsid'] = core.loginInfo['BaseRequest']['Sid'] = node.childNodes[0].data
         elif node.nodeName == 'wxuin':
             core.loginInfo['wxuin'] = core.loginInfo['BaseRequest']['Uin'] = node.childNodes[0].data
-        elif node.nodeName == 'pass_ticket':
-            core.loginInfo['pass_ticket'] = core.loginInfo['BaseRequest']['DeviceID'] = node.childNodes[0].data
-    if not all([key in core.loginInfo for key in ('skey', 'wxsid', 'wxuin', 'pass_ticket')]):
+    if any(
+        key not in core.loginInfo
+        for key in ('skey', 'wxsid', 'wxuin', 'pass_ticket')
+    ):
         logger.error('Your wechat account may be LIMITED to log in WEB wechat, error info:\n%s' % r.text)
         core.isLogging = False
         return False
@@ -210,14 +213,11 @@ def web_init(self):
     contactList = dic.get('ContactList', [])
     chatroomList, otherList = [], []
     for m in contactList:
-        if m['Sex'] != 0:
+        if m['Sex'] != 0 or '@@' not in m['UserName'] and '@' in m['UserName']:
             otherList.append(m)
         elif '@@' in m['UserName']:
             m['MemberList'] = [] # don't let dirty info pollute the list
             chatroomList.append(m)
-        elif '@' in m['UserName']:
-            # mp will be dealt in update_local_friends as well
-            otherList.append(m)
     if chatroomList:
         update_local_chatrooms(self, chatroomList)
     if otherList:
@@ -248,9 +248,7 @@ def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
                 i = sync_check(self)
                 if i is None:
                     self.alive = False
-                elif i == '0':
-                    pass
-                else:
+                elif i != '0':
                     msgList, contactList = self.get_msg()
                     if msgList:
                         msgList = produce_msg(self, msgList)
