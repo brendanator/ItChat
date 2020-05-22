@@ -280,8 +280,7 @@ def send_raw_msg(self, msgType, content, toUserName):
 
 def send_msg(self, msg='Test Message', toUserName=None):
     logger.debug('Request to send a text message to %s: %s' % (toUserName, msg))
-    r = self.send_raw_msg(1, msg, toUserName)
-    return r
+    return self.send_raw_msg(1, msg, toUserName)
 
 def _prepare_file(fileDir, file_=None):
     fileDict = {}
@@ -310,8 +309,8 @@ def upload_file(self, fileDir, isPicture=False, isVideo=False,
         'picture' if isPicture else 'video' if isVideo else 'file', fileDir))
     if not preparedFile:
         preparedFile = _prepare_file(fileDir, file_)
-        if not preparedFile:
-            return preparedFile
+    if not preparedFile:
+        return preparedFile
     fileSize, fileMd5, file_ = \
         preparedFile['fileSize'], preparedFile['fileMd5'], preparedFile['file_']
     fileSymbol = 'pic' if isPicture else 'video' if isVideo else'doc'
@@ -421,7 +420,7 @@ def send_image(self, fileDir=None, toUserName=None, mediaId=None, file_=None):
     if toUserName is None:
         toUserName = self.storageClass.userName
     if mediaId is None:
-        r = self.upload_file(fileDir, isPicture=not fileDir[-4:] == '.gif', file_=file_)
+        r = self.upload_file(fileDir, isPicture=fileDir[-4:] != '.gif', file_=file_)
         if r:
             mediaId = r['MediaId']
         else:
